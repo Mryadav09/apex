@@ -8,17 +8,27 @@
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Orbitron:wght@700;900&family=Russo+One&display=swap" rel="stylesheet">
 <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-    body { background: #000; overflow: hidden; width: 100vw; height: 100vh; font-family: 'Chakra Petch', sans-serif; }
+    
+    /* 100% Perfect Fit & Scroll Lock Fix for Mobile */
+    html, body {
+        width: 100%; height: 100%; 
+        margin: 0; padding: 0;
+        background: #000; overflow: hidden; 
+        position: fixed; top: 0; left: 0; /* Locks body to exact device screen */
+        font-family: 'Chakra Petch', sans-serif;
+    }
 
-    /* Background Website Iframe */
+    /* Background Website Iframe (Perfectly Fits Screen) */
     #bg-frame {
-        position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+        position: absolute; top: 0; left: 0; 
+        width: 100%; height: 100%;
         border: none; z-index: 1;
     }
 
     /* Initial Login Gate Overlay */
     #login-overlay {
-        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        position: fixed; top: 0; left: 0; 
+        width: 100%; height: 100%;
         background: rgba(11, 15, 21, 0.98); backdrop-filter: blur(10px);
         z-index: 9999; display: flex; flex-direction: column;
         align-items: center; justify-content: center;
@@ -275,7 +285,7 @@
     }
 
 
-    // --- HACK TOOL LOGIC ---
+    // --- HACK TOOL LOGIC (API FETCH RESTORED) ---
     var state = 'result';
     var currentResultSz = 'BIG';
     var currentResultNum = 8;
@@ -286,21 +296,44 @@
         state = 'scanning';
         render();
         
-        setTimeout(function() {
-            var n = Math.floor(Math.random() * 10);
-            currentResultNum = n;
-            currentResultSz = (n <= 4) ? 'SMALL' : 'BIG';
-            
-            var d = new Date();
-            var utc = new Date(d.toLocaleString('en-US', {timeZone: 'UTC'}));
-            utc.setMinutes(utc.getMinutes() + 330);
-            var total = utc.getUTCHours() * 60 + utc.getUTCMinutes() - 1;
-            if (total < 0) total = 1439;
-            currentPeriod = String(10001 + total).slice(-5);
-            
-            state = 'result';
-            render();
-        }, 4500);
+        // Standard API Fetch Integration
+        fetch('https://draw.ar-lottery01.com/WinGo/WinGo_1M/GetHistoryIssuePage.json')
+        .then(response => response.json())
+        .then(data => {
+            setTimeout(function() {
+                try {
+                    // Extracting actual data from API
+                    var last = data.data.list[0];
+                    currentResultNum = parseInt(last.number);
+                    currentResultSz = (currentResultNum <= 4) ? 'SMALL' : 'BIG';
+                    currentPeriod = String(last.issueNumber).slice(-5);
+                    state = 'result';
+                    render();
+                } catch(e) {
+                    // Fallback generator if JSON structure changes
+                    fallbackGenerator();
+                }
+            }, 4500); // Wait 4.5s for scanning animation
+        }).catch(error => {
+            // Fallback generator if API block/network issue
+            setTimeout(fallbackGenerator, 4500);
+        });
+    }
+
+    function fallbackGenerator() {
+        var n = Math.floor(Math.random() * 10);
+        currentResultNum = n;
+        currentResultSz = (n <= 4) ? 'SMALL' : 'BIG';
+        
+        var d = new Date();
+        var utc = new Date(d.toLocaleString('en-US', {timeZone: 'UTC'}));
+        utc.setMinutes(utc.getMinutes() + 330);
+        var total = utc.getUTCHours() * 60 + utc.getUTCMinutes() - 1;
+        if (total < 0) total = 1439;
+        currentPeriod = String(10001 + total).slice(-5);
+        
+        state = 'result';
+        render();
     }
 
     // Dynamic UI Renderer

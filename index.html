@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>
+<link href='https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Orbitron:wght@700;900&family=Russo+One&display=swap' rel='stylesheet'>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+body { background: #1a1a1a; overflow: hidden; width: 100%; height: 100%; position: fixed; top: 0; left: 0; font-family: 'Chakra Petch', sans-serif; }
+
+/* ---------------- LOGIN PAGE STYLES ---------------- */
+#login-screen {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: #0b0f15; z-index: 99999;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.login-box {
+    background: rgba(0,0,0,0.6); border: 2px solid #ffcc00; border-radius: 20px 5px 20px 5px;
+    padding: 30px; text-align: center; box-shadow: 0 0 20px rgba(255,204,0,0.5);
+}
+.login-title { font-family: 'Russo One', sans-serif; color: #ffcc00; font-size: 22px; margin-bottom: 5px; }
+.login-sub { color: #00ff66; font-size: 11px; margin-bottom: 25px; font-family: 'Orbitron'; letter-spacing: 1px; }
+.login-input {
+    width: 100%; background: rgba(255,255,255,0.1); border: 1px solid #555; border-radius: 8px;
+    padding: 12px; color: #fff; font-family: 'Chakra Petch'; font-size: 16px; outline: none; text-align: center;
+    margin-bottom: 15px; letter-spacing: 2px;
+}
+.login-input:focus { border-color: #00f0ff; box-shadow: 0 0 10px rgba(0,240,255,0.3); }
+.login-btn {
+    width: 100%; background: linear-gradient(90deg, #00f0ff, #0088ff); color: #000;
+    font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 14px; padding: 12px;
+    border: none; border-radius: 8px; cursor: pointer; text-transform: uppercase;
+    box-shadow: 0 0 10px rgba(0,240,255,0.5);
+}
+.login-btn:active { transform: scale(0.95); }
+.error-msg { color: #ff3366; font-size: 12px; margin-top: 10px; display: none; font-weight: bold; }
+
+/* ---------------- APP CONTAINER & BACKGROUND ---------------- */
+#app-container { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; }
+#bg-iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; z-index: 1; display: block; }
+
+/* ---------------- FLOATING UI (DRAGGABLE) ---------------- */
+#mini, #main { position: absolute; z-index: 1000; touch-action: none; }
+#mini { top: 50px; left: 20px; width: 65px; height: 65px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+#main { top: 15%; left: 50%; transform: translateX(-50%); } /* Initial center position */
+
+/* Floating Logo Style */
+@keyframes spinLogo { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes spinLogoRev { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
+.spin-ring-1 { position: absolute; width: 60px; height: 60px; border: 2px solid transparent; border-top: 2px solid #ffcc00; border-bottom: 2px solid #e6b800; border-radius: 50%; animation: spinLogo 1.5s linear infinite; z-index: 2; }
+.spin-ring-2 { position: absolute; width: 65px; height: 65px; border: 2px solid transparent; border-left: 2px solid #fff5cc; border-right: 2px solid #ffcc00; border-radius: 50%; animation: spinLogoRev 2s linear infinite; z-index: 3; }
+#mini img { width: 48px; height: 48px; object-fit: cover; border-radius: 50%; border: 1.5px solid #ffcc00; position: relative; z-index: 4; box-shadow: 0 0 10px rgba(255,204,0,0.8); background: #000; pointer-events: none; }
+
+/* Main Panel Style */
+@keyframes breathGlow { 0% { box-shadow: 0 0 15px #ffcc00, inset 0 0 5px rgba(255,204,0,0.3); } 50% { box-shadow: 0 0 25px #ffcc00, inset 0 0 12px rgba(255,204,0,0.5); } 100% { box-shadow: 0 0 15px #ffcc00, inset 0 0 5px rgba(255,204,0,0.3); } }
+#main {
+    width: 290px; height: 250px; background: #0b0f15;
+    border: 2px solid #ffcc00; 
+    border-radius: 40px 10px 40px 10px;
+    display: none; flex-direction: column; 
+    box-shadow: 0 0 15px #ffcc00;
+    animation: breathGlow 3s ease-in-out infinite;
+    padding: 12px 14px; gap: 8px;
+}
+
+/* Glowing Corners */
+.corner-dot { position: absolute; width: 5px; height: 5px; background: #fff; border-radius: 50%; box-shadow: 0 0 6px 2px #ffcc00; z-index: 10; }
+.cd-tl { top: 14px; left: 14px; } .cd-tr { top: 6px; right: 6px; }
+.cd-bl { bottom: 6px; left: 6px; } .cd-br { bottom: 14px; right: 14px; }
+
+/* Header Section */
+.header-sec { display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 1px solid rgba(255, 204, 0, 0.15); padding-bottom: 8px; z-index: 5; pointer-events: none; }
+.rm-badge { background: #ffcc00; color: #000; font-family: 'Russo One', sans-serif; font-size: 11px; line-height: 1.1; padding: 3px 5px; border-radius: 6px; text-align: center; box-shadow: 0 0 6px rgba(255,204,0,0.8); }
+.title-col { flex: 1; margin-left: 10px; display: flex; flex-direction: column; justify-content: center; }
+.main-title { font-family: 'Russo One', sans-serif; font-size: 14px; color: #ffcc00; letter-spacing: 1px; text-shadow: 0 0 6px rgba(255, 204, 0, 0.7); line-height: 1.1; }
+.sub-title { font-family: 'Chakra Petch', sans-serif; font-size: 9px; color: #00ff66; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 2px; }
+.top-icons { display: flex; gap: 5px; }
+.icon-btn { width: 22px; height: 22px; border: 1px solid #ffcc00; border-radius: 5px; display: flex; align-items: center; justify-content: center; background: rgba(255,204,0,0.1); }
+.icon-btn svg { width: 12px; height: 12px; fill: #ffcc00; }
+
+/* Mid Section */
+#mid-content { flex: 1; display: flex; flex-direction: column; justify-content: center; position: relative; z-index: 5; pointer-events: none; }
+
+.mid-sec { display: flex; width: 100%; height: 75px; align-items: center; justify-content: space-between; padding: 0; }
+.timer-box { position: relative; width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; }
+.timer-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: rotate(-90deg); z-index: 1; }
+.timer-bg { fill: none; stroke: rgba(255, 204, 0, 0.1); stroke-width: 6; }
+.timer-progress { fill: none; stroke: #ffcc00; stroke-width: 6; stroke-dasharray: 283; stroke-dashoffset: 0; stroke-linecap: round; transition: stroke-dashoffset 1s linear; filter: drop-shadow(0 0 4px rgba(255,204,0,0.7)); }
+.num-png-wrap { position: absolute; width: 56px; height: 56px; border-radius: 50%; z-index: 2; display: flex; align-items: center; justify-content: center; overflow: hidden; background: rgba(0,0,0,0.4); box-shadow: inset 0 0 8px rgba(255,204,0,0.2); }
+.num-png-wrap img { width: 100%; height: 100%; object-fit: contain; transform: scale(1.05); }
+
+.res-details { flex: 1; margin-left: 12px; display: flex; flex-direction: column; justify-content: center; }
+.res-row-1 { display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #cccccc; font-weight: 700; margin-bottom: 4px; }
+.profit-tag { border: 1px solid #00ff66; color: #00ff66; padding: 2px 5px; border-radius: 8px; box-shadow: 0 0 4px rgba(0,255,102,0.4); text-shadow: 0 0 3px rgba(0,255,102,0.9); }
+.res-row-2 { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.big-text { font-family: 'Russo One', sans-serif; font-size: 26px; color: #ffcc00; text-shadow: 0 0 10px rgba(255,204,0,0.7); line-height: 1; }
+.color-tag { background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 10px; font-weight: 800; font-size: 10px; font-family: 'Orbitron', sans-serif; }
+.prog-container { display: flex; align-items: center; gap: 6px; width: 100%; }
+.prog-bar { flex: 1; height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+.prog-fill { width: 99.8%; height: 100%; background: #ffcc00; box-shadow: 0 0 4px #ffcc00; }
+.prog-text { font-family: 'Orbitron', sans-serif; font-size: 8px; font-weight: 800; color: #ffffff; }
+
+/* FULL-BOX CODING ANIMATION */
+.coding-box { position: relative; width: 100%; flex: 1; overflow: hidden; padding: 5px 0; display: flex; flex-direction: column; justify-content: center; }
+.laser-bar { position: absolute; left: 0; width: 100%; height: 2px; background: #00f0ff; box-shadow: 0 0 12px 5px rgba(0, 240, 255, 0.7); animation: laserScan 1.2s ease-in-out infinite alternate; z-index: 2; }
+@keyframes laserScan { 0% { top: 5%; opacity: 0.9; } 100% { top: 95%; opacity: 0.9; } }
+
+.code-content { display: flex; flex-direction: column; gap: 5px; font-family: 'Chakra Petch', monospace; font-size: 11px; color: #00f0ff; letter-spacing: 0.5px; z-index: 1; padding-left: 5px; }
+.c-line { opacity: 0; animation: typeCode 2s forwards; text-shadow: 0 0 5px #00f0ff; }
+.c-line:nth-child(1) { animation-delay: 0.2s; }
+.c-line:nth-child(2) { animation-delay: 1.2s; }
+.c-line:nth-child(3) { animation-delay: 2.2s; }
+.c-line:nth-child(4) { animation-delay: 3.2s; }
+@keyframes typeCode { 0% { opacity: 0; transform: translateX(-10px); } 100% { opacity: 1; transform: translateX(0); } }
+
+/* Bet / Chips Section */
+.bet-sec { background: rgba(0,0,0,0.3); border: 1px solid rgba(255, 204, 0, 0.2); border-radius: 10px; padding: 6px 8px; display: flex; align-items: center; justify-content: space-between; z-index: 5; }
+.chip-label { font-size: 9px; color: #999; font-weight: 700; margin-right: 4px; }
+.chips-row { display: flex; gap: 4px; align-items: center; }
+.chip { padding: 2px 6px; border-radius: 8px; font-size: 9px; font-family: 'Orbitron', sans-serif; font-weight: 800; }
+.chip-active { background: #ffcc00; color: #000; box-shadow: 0 0 6px rgba(255,204,0,0.7); }
+.chip-inactive { border: 1px solid #555; color: #888; }
+.bet-info { font-family: 'Russo One', sans-serif; font-size: 9px; color: #fff; text-align: right; line-height: 1.2; }
+.bet-info span { font-size: 11px; color: #ffcc00; }
+
+/* Footer Section */
+.foot-sec { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 4px; z-index: 5; }
+@keyframes blinkDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.ai-status { display: flex; align-items: center; gap: 4px; font-family: 'Orbitron', sans-serif; font-size: 9px; color: #00ff66; font-weight: 800; text-shadow: 0 0 4px rgba(0,255,102,0.7); }
+.status-dot { width: 6px; height: 6px; background: #00ff66; border-radius: 50%; box-shadow: 0 0 5px rgba(0,255,102,0.9); animation: blinkDot 1.2s infinite; }
+
+.bot-btns { display: flex; gap: 6px; flex-wrap: nowrap; z-index: 15; pointer-events: auto; }
+
+/* PREMIUM BUTTON ANIMATIONS */
+@keyframes shineGradient { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+@keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 8px rgba(0, 240, 255, 0.5); } 50% { box-shadow: 0 0 15px rgba(0, 240, 255, 0.8); } }
+.btn-cyan { 
+   background: linear-gradient(90deg, #00f0ff, #0088ff, #00f0ff); background-size: 200% auto; 
+   color: #000; font-family: 'Orbitron', sans-serif; font-size: 9.5px; font-weight: 900; border: none; border-radius: 6px; 
+   padding: 6px 10px; display: flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap; 
+   animation: shineGradient 3s linear infinite, pulseGlow 2s infinite; transition: 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); 
+}
+.btn-cyan svg { width: 11px; height: 11px; fill: #000; transition: transform 0.2s; }
+.btn-cyan:active { transform: scale(0.92); filter: brightness(1.2); }
+.btn-cyan:active svg { transform: scale(1.1); }
+
+.btn-dark { 
+   background: rgba(255,255,255,0.05); border: 1px solid #555; color: #fff; 
+   font-family: 'Orbitron', sans-serif; font-size: 9.5px; font-weight: 800; border-radius: 6px; padding: 6px 10px; 
+   display: flex; align-items: center; gap: 4px; cursor: pointer; transition: all 0.25s ease; white-space: nowrap; 
+}
+.btn-dark svg { width: 11px; height: 11px; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: 0.2s; }
+.btn-dark:active { transform: scale(0.92); background: rgba(255,255,255,0.2); box-shadow: 0 0 10px rgba(255,255,255,0.4); border-color: #fff; }
+
+/* Scan Anim Background Line */
+@keyframes scanLineFx { 0% { left: -100%; } 100% { left: 100%; } }
+.scan-fx { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; border-radius: 40px 10px 40px 10px; pointer-events: none; z-index: 1; }
+.scan-line { position: absolute; width: 4px; height: 100%; background: #ffcc00; box-shadow: 0 0 20px 8px rgba(255,204,0,0.6); animation: scanLineFx 2s linear infinite; opacity: 0.5; }
+
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="login-screen">
+    <div class="login-box">
+        <div class="login-title">𝗡𝘂𝗺𝗯𝗲𝗿 𝗫 𝗔𝗽𝗲𝘅</div>
+        <div class="login-sub">SECURE SYSTEM LOGIN</div>
+        <input type="password" id="pass-input" class="login-input" placeholder="ENTER PASSWORD">
+        <button class="login-btn" onclick="verifyLogin()">AUTHORIZE</button>
+        <div id="error-txt" class="error-msg">ACCESS DENIED</div>
+    </div>
+</div>
+
+<!-- APP CONTAINER (WITH BACKGROUND IFRAME AND TOOL) -->
+<div id="app-container">
+    <!-- Background Website -->
+    <iframe id="bg-iframe" src="https://www.dmfirst0.com/#/"></iframe>
+
+    <!-- 1. Mini Floating Logo (Draggable) -->
+    <div id='mini'>
+        <div class='spin-ring-1'></div><div class='spin-ring-2'></div>
+        <img src='logo.png' onerror="this.onerror=null; this.src='logo.jpg';">
+    </div>
+
+    <!-- 2. Main Window Tool (Draggable) -->
+    <div id='main'>
+        <div class='corner-dot cd-tl'></div><div class='corner-dot cd-tr'></div>
+        <div class='corner-dot cd-bl'></div><div class='corner-dot cd-br'></div>
+        <div class='scan-fx' id='scan-fx' style='display:none;'><div class='scan-line'></div></div>
+        
+        <div class='header-sec'>
+            <div class='rm-badge'>RM-<br>V12</div>
+            <div class='title-col'>
+                <div class='main-title'>𝗡𝘂𝗺𝗯𝗲𝗿 𝗫 𝗔𝗽𝗲𝘅</div>
+                <div class='sub-title'>● VIP HACK</div>
+            </div>
+            <div class='top-icons'>
+                <div class='icon-btn'><svg viewBox='0 0 24 24'><path d='M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z'/></svg></div>
+                <div class='icon-btn'><svg viewBox='0 0 24 24'><path d='M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z'/></svg></div>
+                <div class='icon-btn'><svg viewBox='0 0 24 24'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z'/></svg></div>
+            </div>
+        </div>
+        
+        <div id='mid-content'></div>
+    </div>
+</div>
+
+<script>
+// --- LOGIN LOGIC ---
+function verifyLogin() {
+    var pass = document.getElementById("pass-input").value;
+    if(pass === "APEX") {
+        document.getElementById("login-screen").style.display = "none";
+        document.getElementById("app-container").style.display = "block";
+        document.getElementById('main').style.display = 'none';
+        document.getElementById('mini').style.display = 'flex';
+    } else {
+        document.getElementById("error-txt").style.display = "block";
+    }
+}
+
+// --- DRAG LOGIC (SMOOTH MOVE WITHOUT SCROLLING BG) ---
+function makeDraggable(element, isMini) {
+    var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    var isMoved = false;
+
+    element.onmousedown = dragMouseDown;
+    element.ontouchstart = dragMouseDown;
+
+    function dragMouseDown(e) {
+        // Prevent drag if clicking on a button inside the tool
+        if(e.target.tagName === 'BUTTON' || e.target.closest('.bot-btns')) return;
+        
+        e = e || window.event;
+        isMoved = false;
+        
+        if (e.type === 'touchstart') {
+            pos3 = e.touches[0].clientX;
+            pos4 = e.touches[0].clientY;
+        } else {
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+        }
+        
+        document.onmouseup = closeDragElement;
+        document.ontouchend = closeDragElement;
+        document.onmousemove = elementDrag;
+        document.ontouchmove = elementDrag;
+    }
+
+    function elementDrag(e) {
+        e = e || window.event;
+        e.preventDefault(); // Prevents background scrolling during drag
+        isMoved = true;
+        
+        var clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+        var clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+        
+        pos1 = pos3 - clientX;
+        pos2 = pos4 - clientY;
+        pos3 = clientX;
+        pos4 = clientY;
+        
+        // Remove transform if dragging main so offset calculation works cleanly
+        if(element.id === 'main' && element.style.transform !== "none") {
+            element.style.transform = "none";
+            element.style.left = element.offsetLeft + "px"; 
+        }
+
+        element.style.top = (element.offsetTop - pos2) + "px";
+        element.style.left = (element.offsetLeft - pos1) + "px";
+    }
+
+    function closeDragElement() {
+        document.onmouseup = null;
+        document.ontouchend = null;
+        document.onmousemove = null;
+        document.ontouchmove = null;
+        
+        // If it was just a tap (not dragged) on the mini logo, open the tool
+        if (!isMoved && isMini) {
+            openM();
+        }
+    }
+}
+
+makeDraggable(document.getElementById("mini"), true);
+makeDraggable(document.getElementById("main"), false);
+
+// --- TOOL LOGIC ---
+var balance = '350.00'; 
+var state = 'wingo'; 
+var isScanning = false;
+var currentResultSz = 'BIG';
+var currentResultNum = 8;
+var currentPeriod = null;
+var lastGeneratedPeriod = null;  
+var liveCountdown = 26;
+
+function getP(){
+    var d = new Date();
+    var utc = new Date(d.toLocaleString('en-US', {timeZone: 'UTC'}));
+    utc.setMinutes(utc.getMinutes() + 330);
+    var total = utc.getUTCHours() * 60 + utc.getUTCMinutes() - 1;
+    if (total < 0) total = 1439; 
+    var periodSuffix = String(10001 + total);
+    return periodSuffix.slice(-5);
+}
+
+setInterval(function(){
+    var d = new Date();
+    liveCountdown = 60 - d.getSeconds();
+    var circle = document.getElementById('circle-bar');
+    if(circle) {
+        var offset = 283 - (283 * liveCountdown / 60);
+        circle.style.strokeDashoffset = offset;
+    }
+}, 1000);
+
+function openM(){
+    document.getElementById('main').style.display='flex';
+    document.getElementById('mini').style.display='none';
+    if(typeof render === 'function') render();
+}
+
+function closeM(){
+    document.getElementById('main').style.display='none';
+    document.getElementById('mini').style.display='flex';
+}
+    
+function actionClick() {
+   var cleanBal = parseFloat(balance.replace(/[^0-9.-]+/g,''));
+   if(isNaN(cleanBal)) cleanBal = 0;
+   
+   if ((state === 'wingo' && cleanBal >= 300) || state === 'result') {
+       if(!isScanning) {
+            generateNewResult();
+        }
+   }
+}
+
+function generateNewResult(){
+    if(isScanning) return;
+    isScanning = true;
+    state = 'scanning'; render();
+    
+    setTimeout(function() {
+        var n = Math.floor(Math.random() * 10);
+        currentResultNum = n;
+        currentResultSz = (n <= 4) ? 'SMALL' : 'BIG';
+        currentPeriod = getP();
+        lastGeneratedPeriod = currentPeriod;
+        state = 'result'; isScanning = false;
+        render();
+    }, 4500);
+}
+
+function render(){
+    var cont = document.getElementById('mid-content');
+    if(!cont) return;
+    var cleanBal = parseFloat(balance.replace(/[^0-9.-]+/g,''));
+    if(isNaN(cleanBal)) cleanBal = 0;
+    
+    var sfx = document.getElementById('scan-fx');
+    if(state === 'scanning') { sfx.style.display = 'block'; } else { sfx.style.display = 'none'; }
+    
+    if(state=='reg' || state=='waiting' || (state=='wingo' && cleanBal < 300)){
+        var title = state=='reg' ? 'ACCESS RESTRICTED' : (cleanBal < 300 && state=='wingo' ? 'INSUFFICIENT GAS' : 'AWAITING TARGET');
+        var msg = state=='reg' ? 'Unauthorized footprint. Register or login to bypass the firewall.' : (cleanBal < 300 && state=='wingo' ? 'AI script requires min ₹300. Refuel your wallet to initiate the bypass.' : 'AI engines are idling. Navigate to Wingo 1Min terminal to establish uplink.');
+        var tColor = (cleanBal < 300 && state=='wingo') ? '#ff3366' : '#ffcc00';
+        var bColor = (cleanBal < 300 && state=='wingo') ? '#ff3366' : '#00ff66';
+        var balHtml = (state=='waiting') ? '' : '<p style="color:#fff; font-size:13px; font-weight:bold; font-family:\'Russo One\';">BAL: <span style="color:'+bColor+';">₹'+balance+'</span></p>';
+        
+        cont.innerHTML=
+        '<div style="text-align:center; margin-top:15px; flex:1; display:flex; flex-direction:column; justify-content:center;">' +
+           '<h2 style="color:'+tColor+'; font-family:Orbitron; font-size:15px; text-shadow:0 0 8px rgba(255,204,0,0.4);">[ '+title+' ]</h2>' +
+           '<p style="color:#b3b3b3; font-size:11px; margin:8px 5px; font-family:\'Chakra Petch\'; line-height:1.3;">'+msg+'</p>' +
+           balHtml +
+        '</div>' +
+        '<div class="foot-sec" style="justify-content: flex-end;">' +
+           '<div class="bot-btns">' +
+               '<button class="btn-cyan" onclick="actionClick()"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg> ADD FUNDS</button>' +
+               '<button class="btn-dark" onclick="closeM()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg> HIDE</button>' +
+           '</div>' +
+        '</div>';
+        
+    } else if(state=='wingo'){
+        cont.innerHTML=
+        '<div style="text-align:center; margin-top:15px; flex:1; display:flex; flex-direction:column; justify-content:center;">' +
+           '<h2 style="color:#00ff66; font-family:Orbitron; font-size:15px; text-shadow:0 0 8px rgba(0,255,102,0.6);">[ UPLINK SECURED ]</h2>' +
+           '<p style="color:#b3b3b3; font-size:11px; margin:8px 5px; font-family:\'Chakra Petch\'; line-height:1.3;">Connection stable. AI is ready to decrypt the next block pattern.</p>' +
+           '<p style="color:#fff; font-size:13px; font-weight:bold; font-family:\'Russo One\';">BAL: <span style="color:#ffcc00;">₹'+balance+'</span></p>' +
+        '</div>' +
+        '<div class="foot-sec" style="justify-content: flex-end;">' +
+           '<div class="bot-btns">' +
+               '<button class="btn-cyan" onclick="actionClick()"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> PREDICT</button>' +
+               '<button class="btn-dark" onclick="closeM()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg> HIDE</button>' +
+           '</div>' +
+        '</div>';
+        
+    } else if(state=='scanning'){
+        cont.innerHTML=
+        '<div class="coding-box">' +
+           '<div class="laser-bar"></div>' +
+           '<div class="code-content">' +
+               '<div class="c-line">> Establishing AI Connection... <span style="color:#00ff66;">[OK]</span></div>' +
+               '<div class="c-line">> Bypassing Core Auth... <span style="color:#00ff66;">[OK]</span></div>' +
+               '<div class="c-line">> Extracting SHA-256 Hash... <span style="color:#00ff66;">[OK]</span></div>' +
+               '<div class="c-line">> Decrypting Live Pattern... <span style="color:#ffcc00;">[BUSY]</span></div>' +
+           '</div>' +
+        '</div>' +
+        '<div class="foot-sec" style="justify-content: flex-end;">' +
+           '<div class="bot-btns">' +
+               '<button class="btn-cyan" style="pointer-events:none; filter:grayscale(0.8); opacity:0.8;"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> SCANNING</button>' +
+               '<button class="btn-dark" onclick="closeM()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg> HIDE</button>' +
+           '</div>' +
+        '</div>';
+        
+    } else if(state=='result'){
+        var isRed = (currentResultNum % 2 === 0);
+        var colorName = isRed ? '🔴 RED' : '🟢 GREEN';
+        var colorCss = isRed ? 'border:1px solid #ff3366; color:#ff3366; box-shadow:0 0 4px rgba(255,51,102,0.4);' : 'border:1px solid #00ff66; color:#00ff66; box-shadow:0 0 4px rgba(0,255,102,0.4);';
+        var pStr = currentPeriod ? currentPeriod : getP();
+        var imgSrc = 'num_' + currentResultNum + '.png'; 
+        
+        cont.innerHTML=
+        '<div class="mid-sec">' +
+            '<div class="timer-box">' +
+                '<svg class="timer-svg" viewBox="0 0 100 100">' +
+                    '<circle class="timer-bg" cx="50" cy="50" r="45"></circle>' +
+                    '<circle class="timer-progress" id="circle-bar" cx="50" cy="50" r="45"></circle>' +
+                '</svg>' +
+                '<div class="num-png-wrap">' + 
+                    '<img src="'+imgSrc+'" onerror="this.style.display=\'none\'; this.parentNode.innerText=\''+currentResultNum+'\'; this.parentNode.style.fontFamily=\'Russo One\'; this.parentNode.style.fontSize=\'28px\'; this.parentNode.style.color=\'#fff\';" />' +
+                '</div>' +
+            '</div>' +
+            '<div class="res-details">' +
+                '<div class="res-row-1">' +
+                    '<span>ISSUE:<br><span style="color:#fff; font-size:11px; font-family:Orbitron;">#00'+pStr+'</span></span>' +
+                    '<span class="profit-tag">+₹14,270<br>PROFIT</span>' +
+                '</div>' +
+                '<div class="res-row-2">' +
+                    '<span class="big-text">'+currentResultSz+'</span>' +
+                    '<span class="color-tag" style="'+colorCss+'">'+colorName+'</span>' +
+                '</div>' +
+                '<div class="prog-container">' +
+                    '<div class="prog-bar"><div class="prog-fill"></div></div>' +
+                    '<span class="prog-text">99.8%</span>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+        '<div class="bet-sec">' +
+            '<div class="chips-row">' +
+                '<span class="chip-label">CHIP:</span>' +
+                '<span class="chip chip-active">₹10</span>' +
+                '<span class="chip chip-inactive">₹50</span>' +
+                '<span class="chip chip-inactive">₹100</span>' +
+                '<span class="chip chip-inactive">₹500</span>' +
+            '</div>' +
+            '<div class="bet-info">BET: <span>₹90</span><br>(9X)</div>' +
+        '</div>' +
+        '<div class="foot-sec">' +
+            '<div class="ai-status"><div class="status-dot"></div> AI ACTIVE</div>' +
+            '<div class="bot-btns">' +
+                '<button class="btn-cyan" onclick="actionClick()"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> PREDICT</button>' +
+                '<button class="btn-dark" onclick="closeM()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg> HIDE</button>' +
+            '</div>' +
+        '</div>';
+    }
+}
+</script>
+</body>
+</html>
